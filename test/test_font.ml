@@ -1,17 +1,24 @@
+(* Memory-maps a file and returns it as a bigarray *)
 let map_filename filename =
   let fd = Unix.openfile filename [Unix.O_RDONLY] 0 in
   let sz = Unix.lseek fd 0 Unix.SEEK_END in
   assert (Unix.lseek fd 0 Unix.SEEK_SET = 0);
-  let arr = Bigarray.Array1.map_file fd Bigarray.int8_unsigned
-      Bigarray.c_layout false sz in
+  let arr =
+    Unix.map_file fd Bigarray.int8_unsigned Bigarray.c_layout false [|sz|]
+    |> Bigarray.array1_of_genarray
+  in
   Unix.close fd;
   arr
 
+(* Saves a copy of the bigarray *)
 let save_buffer filename arr =
   let fd = Unix.openfile filename [Unix.O_CREAT; Unix.O_RDWR] 0o644 in
   Unix.ftruncate fd (Bigarray.Array1.dim arr);
-  let arr' = Bigarray.Array1.map_file fd Bigarray.int8_unsigned
-      Bigarray.c_layout true (Bigarray.Array1.dim arr) in
+  let arr' =
+    Unix.map_file fd Bigarray.int8_unsigned Bigarray.c_layout true
+      [|Bigarray.Array1.dim arr|]
+    |> Bigarray.array1_of_genarray
+  in
   Bigarray.Array1.blit arr arr';
   Unix.close fd
 
@@ -67,7 +74,7 @@ let main filename =
                   ~width:512 ~height:256 ~stride:512 ~padding:1 with
     | None -> Printf.eprintf "Internal error, could not initialize packer\n"
     | Some packer ->
-      let range = [|{Stb_truetype. font_size = Stb_truetype.Size_of_M 20.;
+      let range = [|{Stb_truetype.font_size = Stb_truetype.Size_of_M 20.;
                      first_codepoint = Char.code 'A';
                      count = Char.code 'z' - Char.code 'A' + 1}|] in
       let pack () =

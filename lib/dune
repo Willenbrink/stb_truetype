@@ -1,0 +1,11 @@
+(library
+  (name stb_truetype)
+  (foreign_stubs
+    (names ml_stb_truetype)
+    (language c)
+    )
+  )
+
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
